@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ImageOrder PDF</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <a class="brand" href="/" aria-label="ImageOrder PDF home"><span class="brand-mark">↟</span> ImageOrder</a>
+        <span class="secure">Your images stay in your browser</span>
+      </header>
+
+      <section class="hero">
+        <p class="eyebrow">IMAGE TO PDF, IN THE RIGHT ORDER</p>
+        <h1>Make one PDF from<br /><em>your image sequence.</em></h1>
+        <p class="intro">Upload your pages, arrange them exactly how you want, then download a clean, single PDF.</p>
+      </section>
+
+      <section class="workspace" aria-label="PDF builder">
+        <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Upload images">
+          <input id="fileInput" type="file" accept="image/*" multiple hidden />
+          <div class="upload-icon">↑</div>
+          <h2>Drop images here</h2>
+          <p>or <button id="browseButton" type="button">choose files</button> from your device</p>
+          <small>JPG, PNG, WEBP and more · select as many as you need</small>
+        </div>
+
+        <div id="pagesArea" class="pages-area" hidden>
+          <div class="toolbar">
+            <div><strong id="pageCount">0 pages</strong><span>Drag cards to set the page order</span></div>
+            <div class="toolbar-actions">
+              <button id="sortButton" class="text-button" type="button">Sort by filename</button>
+              <button id="clearButton" class="text-button danger" type="button">Clear all</button>
+            </div>
+          </div>
+          <ol id="imageList" class="image-list" aria-label="PDF pages"></ol>
+          <button id="addMoreButton" class="add-more" type="button">+ Add more images</button>
+        </div>
+      </section>
+
+      <section class="options">
+        <label>Page size
+          <select id="pageSize"><option value="a4">A4</option><option value="letter">Letter</option></select>
+        </label>
+        <label>Orientation
+          <select id="orientation"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select>
+        </label>
+        <label>Image fit
+          <select id="fit"><option value="contain">Fit whole image</option><option value="cover">Fill page</option></select>
+        </label>
+      </section>
+
+      <button id="downloadButton" class="download" type="button" disabled>
+        <span>Download PDF</span><span class="arrow">→</span>
+      </button>
+      <p id="status" class="status" aria-live="polite"></p>
+    </main>
+    <footer>Made for orderly pages. Nothing is uploaded to a server.</footer>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
