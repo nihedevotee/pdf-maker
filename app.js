@@ -39,7 +39,28 @@ function movePage(fromId, toId) { const from = pages.findIndex(p => p.id === fro
 function removePage(id) { const page = pages.find(p => p.id === id); URL.revokeObjectURL(page.url); pages = pages.filter(p => p.id !== id); render(); }
 function naturalSort(a, b) { return a.file.name.localeCompare(b.file.name, undefined, { numeric:true, sensitivity:'base' }); }
 
-async function imageData(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => { const img = new Image(); img.onload = () => resolve(img); img.onerror = reject; img.src = reader.result; }; reader.onerror = reject; reader.readAsDataURL(file); }); }
+async function imageData(file, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        if (!quality) { resolve({ img, format: pdfImageFormat(file) }); return; }
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        const compressed = new Image();
+        compressed.onload = () => resolve({ img: compressed, format: 'JPEG' });
+        compressed.onerror = reject;
+        compressed.src = canvas.toDataURL('image/jpeg', quality);
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 function pdfImageFormat(file) {
   if (file.type === 'image/png') return 'PNG';
   if (file.type === 'image/webp') return 'WEBP';
@@ -47,16 +68,19 @@ function pdfImageFormat(file) {
 }
 async function makePdf() {
   if (!pages.length || !window.jspdf) { status.textContent = 'PDF library could not load. Check your internet connection and try again.'; return; }
-  downloadButton.disabled = true; status.textContent = 'Building your PDF…';
+  const compress = confirm('Compress the PDF to reduce file size? (Slightly lowers image quality)');
+  downloadButton.disabled = true; status.textContent = compress ? 'Compressing and building your PDF…' : 'Building your PDF…';
   try {
     const { jsPDF } = window.jspdf; const format = $('#pageSize').value; const orientation = $('#orientation').value;
     const pdf = new jsPDF({ orientation, unit:'mm', format, compress:true }); const fit = $('#fit').value;
+    const quality = compress ? 0.6 : null;
     for (let i = 0; i < pages.length; i++) {
       if (i) pdf.addPage(format, orientation);
-      const img = await imageData(pages[i].file); const w = pdf.internal.pageSize.getWidth(), h = pdf.internal.pageSize.getHeight();
+      const { img, format: imgFormat } = await imageData(pages[i].file, quality);
+      const w = pdf.internal.pageSize.getWidth(), h = pdf.internal.pageSize.getHeight();
       const ratio = fit === 'cover' ? Math.max(w / img.naturalWidth, h / img.naturalHeight) : Math.min(w / img.naturalWidth, h / img.naturalHeight);
       const iw = img.naturalWidth * ratio, ih = img.naturalHeight * ratio;
-      pdf.addImage(img, pdfImageFormat(pages[i].file), (w - iw) / 2, (h - ih) / 2, iw, ih, undefined, 'FAST');
+      pdf.addImage(img, imgFormat, (w - iw) / 2, (h - ih) / 2, iw, ih, undefined, 'FAST');
     }
     pdf.save('image-order.pdf'); status.textContent = `Done — ${pages.length} pages downloaded in your chosen order.`;
   } catch (error) { console.error(error); status.textContent = 'Something went wrong while making the PDF. Please try again.'; }
@@ -70,5 +94,6 @@ dropZone.addEventListener('click', () => fileInput.click()); dropZone.addEventLi
 ['dragleave','drop'].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.remove('dragging'); }));
 dropZone.addEventListener('drop', event => addFiles(event.dataTransfer.files));
 $('#sortButton').addEventListener('click', () => { pages.sort(naturalSort); render(); status.textContent = 'Pages sorted by filename.'; });
+$('#reverseButton').addEventListener('click', () => { pages.reverse(); render(); status.textContent = 'Page order reversed — last image is now first.'; });
 $('#clearButton').addEventListener('click', () => { pages.forEach(page => URL.revokeObjectURL(page.url)); pages = []; render(); status.textContent = 'All images cleared.'; });
 downloadButton.addEventListener('click', makePdf);
