@@ -6,64 +6,105 @@
     <title>ImageOrder PDF</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <main class="shell">
-      <header>
-        <a class="brand" href="/" aria-label="ImageOrder PDF home"><span class="brand-mark">↟</span> ImageOrder</a>
-        <span class="secure">Your images stay in your browser</span>
+      <header class="site-header">
+        <a class="brand" href="/" aria-label="ImageOrder PDF home"><span class="brand-mark">▣</span>ImageOrder</a>
+        <a class="gh-follow" href="https://github.com/nihedevotee" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.64 0 8.13c0 3.6 2.29 6.65 5.47 7.73.4.08.55-.17.55-.39 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.5-2.69-.95-.09-.23-.48-.95-.82-1.14-.28-.15-.68-.53-.01-.54.63-.01 1.08.59 1.23.83.72 1.22 1.87.88 2.33.67.07-.52.28-.88.51-1.08-1.78-.2-3.64-.9-3.64-4 0-.88.31-1.61.82-2.17-.08-.2-.36-1.03.08-2.15 0 0 .67-.22 2.2.83a7.4 7.4 0 0 1 4 0c1.53-1.05 2.2-.83 2.2-.83.44 1.12.16 1.95.08 2.15.51.56.82 1.28.82 2.17 0 3.11-1.87 3.8-3.65 4 .29.25.54.75.54 1.51 0 1.09-.01 1.97-.01 2.24 0 .22.15.48.55.39A8.13 8.13 0 0 0 16 8.13C16 3.64 12.42 0 8 0Z"/></svg>
+          follow on GitHub, don't be shy
+        </a>
       </header>
 
       <section class="hero">
-        <p class="eyebrow">IMAGE TO PDF, IN THE RIGHT ORDER</p>
-        <h1>Make one PDF from<br /><em>your image sequence.</em></h1>
-        <p class="intro">Upload your pages, arrange them exactly how you want, then download a clean, single PDF.</p>
+        <p class="kicker">two tools, zero uploads — everything runs in this tab</p>
+        <h1>Why show your PDF to the world<br />when you can do it <span class="accent-a">locally</span>?</h1>
+        <p class="intro">Build one from a stack of images, or flip the page order of one you've already got. Nothing leaves your browser.</p>
       </section>
 
-      <section class="workspace" aria-label="PDF builder">
-        <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Upload images">
-          <input id="fileInput" type="file" accept="image/*" multiple hidden />
-          <div class="upload-icon">↑</div>
-          <h2>Drop images here</h2>
-          <p>or <button id="browseButton" type="button">choose files</button> from your device</p>
-          <small>JPG, PNG, WEBP and more · select as many as you need</small>
-        </div>
-
-        <div id="pagesArea" class="pages-area" hidden>
-          <div class="toolbar">
-            <div><strong id="pageCount">0 pages</strong><span>Drag cards to set the page order</span></div>
-            <div class="toolbar-actions">
-              <button id="sortButton" class="text-button" type="button">Sort by filename</button>
-              <button id="reverseButton" class="text-button" type="button">Reverse order</button>
-              <button id="clearButton" class="text-button danger" type="button">Clear all</button>
-            </div>
+      <section class="tools-grid">
+        <article class="tool-panel tool-panel--a" aria-label="PDF builder">
+          <div class="panel-head">
+            <span class="panel-mark">img → pdf</span>
+            <h2>Images to PDF</h2>
+            <p>Drop them in, drag to reorder, download one file.</p>
           </div>
-          <ol id="imageList" class="image-list" aria-label="PDF pages"></ol>
-          <button id="addMoreButton" class="add-more" type="button">+ Add more images</button>
-        </div>
-      </section>
 
-      <section class="options">
-        <label>Page size
-          <select id="pageSize"><option value="a4">A4</option><option value="letter">Letter</option></select>
-        </label>
-        <label>Orientation
-          <select id="orientation"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select>
-        </label>
-        <label>Image fit
-          <select id="fit"><option value="contain">Fit whole image</option><option value="cover">Fill page</option></select>
-        </label>
-      </section>
+          <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Upload images">
+            <input id="fileInput" type="file" accept="image/*" multiple hidden />
+            <div class="upload-icon">↑</div>
+            <h3>Drop images here</h3>
+            <p>or <button id="browseButton" type="button">choose files</button> from your device</p>
+            <small>JPG, PNG, WEBP and more · select as many as you need</small>
+          </div>
 
-      <button id="downloadButton" class="download" type="button" disabled>
-        <span>Download PDF</span><span class="arrow">→</span>
-      </button>
-      <p id="status" class="status" aria-live="polite"></p>
+          <div id="pagesArea" class="pages-area" hidden>
+            <div class="toolbar">
+              <div><strong id="pageCount">0 pages</strong><span>drag cards to set the order</span></div>
+              <div class="toolbar-actions">
+                <button id="sortButton" class="text-button" type="button">sort by filename</button>
+                <button id="reverseButton" class="text-button" type="button">reverse order</button>
+                <button id="clearButton" class="text-button danger" type="button">clear all</button>
+              </div>
+            </div>
+            <ol id="imageList" class="image-list" aria-label="PDF pages"></ol>
+            <button id="addMoreButton" class="add-more" type="button">+ add more images</button>
+          </div>
+
+          <div class="options">
+            <label>page size
+              <select id="pageSize"><option value="a4">A4</option><option value="letter">Letter</option></select>
+            </label>
+            <label>orientation
+              <select id="orientation"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select>
+            </label>
+            <label>image fit
+              <select id="fit"><option value="contain">Fit whole image</option><option value="cover">Fill page</option></select>
+            </label>
+            <label class="checkbox-option"><input id="reversePdf" type="checkbox" /> reverse page order in output</label>
+          </div>
+
+          <button id="downloadButton" class="download" type="button" disabled>
+            <span>Download PDF</span><span class="arrow">→</span>
+          </button>
+          <p id="status" class="status" aria-live="polite"></p>
+        </article>
+
+        <article class="tool-panel tool-panel--b" aria-label="Reverse an existing PDF">
+          <div class="panel-head">
+            <span class="panel-mark">pdf ↺</span>
+            <h2>Reverse a PDF</h2>
+            <p>Flip the page order directly — no re-uploading each page as an image.</p>
+          </div>
+
+          <div class="pdf-reverse-body">
+            <input id="pdfInput" type="file" accept="application/pdf" hidden />
+            <button class="pdf-drop" id="choosePdfButton" type="button">
+              <span class="upload-icon upload-icon--b">⇅</span>
+              <h3>Choose a PDF file</h3>
+              <span id="pdfFileName" class="filename"></span>
+            </button>
+
+            <button id="reversePdfFileButton" class="download download--b" type="button" disabled>
+              <span>Reverse &amp; Download</span><span class="arrow">→</span>
+            </button>
+            <p id="pdfStatus" class="status" aria-live="polite"></p>
+          </div>
+
+          <div class="panel-note">
+            <p>Turning "compress" on re-encodes any JPEG images inside the PDF at a lower quality to shrink the file. Layout and text are untouched.</p>
+          </div>
+        </article>
+      </section>
     </main>
-    <footer>Made for orderly pages. Nothing is uploaded to a server.</footer>
+    <footer>
+      <p>Made for orderly pages. Nothing is uploaded to a server — <a href="https://github.com/nihedevotee" target="_blank" rel="noopener">check the code, and follow along on GitHub</a> if you're into that kind of thing.</p>
+    </footer>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
