@@ -172,3 +172,10 @@ footer a:hover { text-decoration: underline; }
   .thumb { height: 100px; }
   .options { gap: 10px; }
 }
+.page-card { position: relative; }
+.page-card .rotate {
+  position: absolute; top: 6px; left: 6px; z-index: 5;
+  width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%;
+  background: #ffb454; color: #111; font-size: 15px; line-height: 26px;
+  text-align: center; cursor: pointer;
+}
