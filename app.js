@@ -11,7 +11,7 @@ let draggedId = null;
 function addFiles(files) {
   const images = [...files].filter((file) => file.type.startsWith('image/'));
   if (!images.length) { status.textContent = 'Please choose image files.'; return; }
-  pages.push(...images.map((file) => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) })));
+  pages.push(...images.map((file) => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file), rotation: 0 })));
   pages.sort(naturalSort); // auto-order: 1, 2, 3, ... 10, 11
   render();
   status.textContent = `${images.length} image${images.length === 1 ? '' : 's'} added and sorted.`;
@@ -22,13 +22,14 @@ function render() {
   pages.forEach((page, index) => {
     const card = document.createElement('li');
     card.className = 'page-card'; card.draggable = true; card.dataset.id = page.id;
-    card.innerHTML = `<div class="thumb"><img src="${page.url}" alt="Page ${index + 1} preview"></div><div class="card-meta"><span class="page-number">${index + 1}</span><span class="filename" title="${page.file.name}">${page.file.name}</span></div><button class="remove" type="button" aria-label="Remove ${page.file.name}">×</button>`;
+    card.innerHTML = `<div class="thumb"><img src="${page.url}" alt="Page ${index + 1} preview" style="transform:rotate(${page.rotation}deg)${page.rotation % 180 ? ' scale(.7)' : ''}"></div><div class="card-meta"><span class="page-number">${index + 1}</span><span class="filename" title="${page.file.name}">${page.file.name}</span></div><button class="rotate" type="button" aria-label="Rotate ${page.file.name}">↻</button><button class="remove" type="button" aria-label="Remove ${page.file.name}">×</button>`;
     card.addEventListener('dragstart', () => { draggedId = page.id; card.classList.add('drag-source'); });
     card.addEventListener('dragend', () => { draggedId = null; document.querySelectorAll('.page-card').forEach(c => c.classList.remove('drag-source', 'drag-over')); });
     card.addEventListener('dragover', (event) => { event.preventDefault(); if (draggedId !== page.id) card.classList.add('drag-over'); });
     card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
     card.addEventListener('drop', (event) => { event.preventDefault(); movePage(draggedId, page.id); });
     card.querySelector('.remove').addEventListener('click', () => removePage(page.id));
+    card.querySelector('.rotate').addEventListener('click', (e) => { e.stopPropagation(); page.rotation = (page.rotation + 90) % 360; render(); });
     imageList.append(card);
   });
   $('#pageCount').textContent = `${pages.length} page${pages.length === 1 ? '' : 's'}`;
@@ -39,20 +40,26 @@ function movePage(fromId, toId) { const from = pages.findIndex(p => p.id === fro
 function removePage(id) { const page = pages.find(p => p.id === id); URL.revokeObjectURL(page.url); pages = pages.filter(p => p.id !== id); render(); }
 function naturalSort(a, b) { return a.file.name.localeCompare(b.file.name, undefined, { numeric:true, sensitivity:'base' }); }
 
-async function imageData(file, quality) {
+async function imageData(file, quality, rotation = 0) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
-        if (!quality) { resolve({ img, format: pdfImageFormat(file) }); return; }
+        if (!quality && !rotation) { resolve({ img, format: pdfImageFormat(file) }); return; }
+        const turn = rotation % 180 !== 0;
         const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
-        canvas.getContext('2d').drawImage(img, 0, 0);
-        const compressed = new Image();
-        compressed.onload = () => resolve({ img: compressed, format: 'JPEG' });
-        compressed.onerror = reject;
-        compressed.src = canvas.toDataURL('image/jpeg', quality);
+        canvas.width = turn ? img.naturalHeight : img.naturalWidth;
+        canvas.height = turn ? img.naturalWidth : img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(rotation * Math.PI / 180);
+        ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+        const out = new Image();
+        out.onload = () => resolve({ img: out, format: 'JPEG' });
+        out.onerror = reject;
+        out.src = canvas.toDataURL('image/jpeg', quality || 0.92);
       };
       img.onerror = reject;
       img.src = reader.result;
@@ -77,7 +84,7 @@ async function makePdf() {
     const orderedPages = $('#reversePdf').checked ? [...pages].reverse() : pages;
     for (let i = 0; i < orderedPages.length; i++) {
       if (i) pdf.addPage(format, orientation);
-      const { img, format: imgFormat } = await imageData(orderedPages[i].file, quality);
+      const { img, format: imgFormat } = await imageData(orderedPages[i].file, quality, orderedPages[i].rotation);
       const w = pdf.internal.pageSize.getWidth(), h = pdf.internal.pageSize.getHeight();
       const ratio = fit === 'cover' ? Math.max(w / img.naturalWidth, h / img.naturalHeight) : Math.min(w / img.naturalWidth, h / img.naturalHeight);
       const iw = img.naturalWidth * ratio, ih = img.naturalHeight * ratio;
