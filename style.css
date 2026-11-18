@@ -179,3 +179,30 @@ footer a:hover { text-decoration: underline; }
   background: #ffb454; color: #111; font-size: 15px; line-height: 26px;
   text-align: center; cursor: pointer;
 }
+:root { --accent-c: #c4a6ff; --accent-c-dim: #2d2347; }
+.tool-panel--wide { grid-column: 1 / -1; }
+.tool-panel--c { border-top: 2px solid var(--accent-c); }
+.tool-panel--c .panel-mark { color: var(--accent-c); background: var(--accent-c-dim); }
+.drop-zone--c:hover, .drop-zone--c:focus, .drop-zone--c.dragging { border-color: var(--accent-c); background: #17121f; }
+.drop-zone--c button, .text-button--c { color: var(--accent-c); }
+.upload-icon--c { background: var(--accent-c-dim); color: var(--accent-c); }
+.download--c { background: var(--accent-c); }
+
+.merge-list {
+  list-style: none; margin: 0; padding: 0; max-height: 360px; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: 6px; background: var(--surface-raised);
+}
+.merge-row {
+  display: flex; align-items: center; gap: 10px; padding: 7px 10px; cursor: grab;
+  border-bottom: 1px solid var(--border); font-size: 12.5px;
+}
+.merge-row:last-child { border-bottom: 0; }
+.merge-row.drag-source { opacity: 0.35; }
+.merge-row.drag-over { outline: 2px solid var(--accent-c); outline-offset: -2px; }
+.merge-num {
+  min-width: 34px; padding: 2px 6px; border-radius: 4px; background: var(--accent-c); color: #170f26;
+  font: 700 10px "JetBrains Mono", monospace; text-align: center;
+}
+.merge-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.merge-size { color: #626c7a; font-size: 11px; font-family: "JetBrains Mono", monospace; }
+.merge-remove { border: 0; background: none; color: var(--danger); font-size: 17px; cursor: pointer; padding: 0 4px; }

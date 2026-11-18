@@ -210,3 +210,155 @@ reversePdfFileButton.addEventListener('click', async () => {
     reversePdfFileButton.disabled = false;
   }
 });
+// ---------- Merge PDFs ----------
+const mergeDrop = $('#mergeDrop');
+const mergeFileInput = $('#mergeFileInput');
+const mergeFolderInput = $('#mergeFolderInput');
+const mergeList = $('#mergeList');
+const mergeButton = $('#mergeButton');
+const mergeStatus = $('#mergeStatus');
+let mergeItems = [];
+let mergeDragId = null;
+
+const pathSort = (a, b) => a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' });
+const isPdf = (file) => file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+
+function addMergeEntries(entries) {
+  const pdfs = entries.filter((e) => isPdf(e.file));
+  if (!pdfs.length) { mergeStatus.textContent = 'No PDFs found.'; return; }
+  for (const e of pdfs) mergeItems.push({ id: crypto.randomUUID(), file: e.file, path: e.path });
+  mergeItems.sort(pathSort);
+  renderMerge();
+  mergeStatus.textContent = `${pdfs.length} PDF${pdfs.length === 1 ? '' : 's'} added and sorted.`;
+}
+
+function addMergeFromInput(files) {
+  addMergeEntries([...files].map((file) => ({ file, path: file.webkitRelativePath || file.name })));
+}
+
+async function readEntry(entry, out) {
+  if (entry.isFile) {
+    const file = await new Promise((res, rej) => entry.file(res, rej));
+    out.push({ file, path: entry.fullPath.replace(/^\//, '') });
+  } else if (entry.isDirectory) {
+    const reader = entry.createReader();
+    let batch;
+    do { // readEntries returns ~100 at a time, so loop until empty
+      batch = await new Promise((res, rej) => reader.readEntries(res, rej));
+      for (const child of batch) await readEntry(child, out);
+    } while (batch.length);
+  }
+}
+
+async function addMergeFromDrop(dataTransfer) {
+  // grab entries synchronously, the items go stale after the first await
+  const entries = [...dataTransfer.items].map((i) => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  if (!entries.length) { addMergeFromInput(dataTransfer.files); return; }
+  mergeStatus.textContent = 'Reading folders…';
+  const out = [];
+  for (const entry of entries) await readEntry(entry, out);
+  addMergeEntries(out);
+}
+
+function renderMerge() {
+  mergeList.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  mergeItems.forEach((item, i) => {
+    const li = document.createElement('li');
+    li.className = 'merge-row'; li.draggable = true; li.dataset.id = item.id;
+    li.innerHTML = `<span class="merge-num">${i + 1}</span><span class="merge-path"></span><span class="merge-size">${formatBytes(item.file.size)}</span><button class="merge-remove" type="button" aria-label="Remove">×</button>`;
+    li.querySelector('.merge-path').textContent = item.path;
+    li.querySelector('.merge-path').title = item.path;
+    frag.append(li);
+  });
+  mergeList.append(frag);
+  $('#mergeCount').textContent = `${mergeItems.length} PDF${mergeItems.length === 1 ? '' : 's'}`;
+  $('#mergeArea').hidden = mergeItems.length === 0;
+  mergeDrop.hidden = mergeItems.length > 0;
+  mergeButton.disabled = mergeItems.length === 0;
+}
+
+// row events (delegated so thousands of rows stay fast)
+mergeList.addEventListener('dragstart', (e) => {
+  const row = e.target.closest('.merge-row'); if (!row) return;
+  mergeDragId = row.dataset.id; row.classList.add('drag-source');
+});
+mergeList.addEventListener('dragend', () => {
+  mergeDragId = null;
+  mergeList.querySelectorAll('.drag-source, .drag-over').forEach((r) => r.classList.remove('drag-source', 'drag-over'));
+});
+mergeList.addEventListener('dragover', (e) => {
+  const row = e.target.closest('.merge-row'); if (!row) return;
+  e.preventDefault();
+  mergeList.querySelectorAll('.drag-over').forEach((r) => r.classList.remove('drag-over'));
+  if (row.dataset.id !== mergeDragId) row.classList.add('drag-over');
+});
+mergeList.addEventListener('drop', (e) => {
+  const row = e.target.closest('.merge-row'); if (!row || !mergeDragId) return;
+  e.preventDefault();
+  const from = mergeItems.findIndex((p) => p.id === mergeDragId);
+  const to = mergeItems.findIndex((p) => p.id === row.dataset.id);
+  if (from < 0 || to < 0 || from === to) return;
+  mergeItems.splice(to, 0, mergeItems.splice(from, 1)[0]);
+  renderMerge();
+});
+mergeList.addEventListener('click', (e) => {
+  const btn = e.target.closest('.merge-remove'); if (!btn) return;
+  const id = btn.closest('.merge-row').dataset.id;
+  mergeItems = mergeItems.filter((p) => p.id !== id);
+  renderMerge();
+});
+
+// inputs + buttons
+$('#mergeBrowseFiles').addEventListener('click', (e) => { e.stopPropagation(); mergeFileInput.click(); });
+$('#mergeBrowseFolder').addEventListener('click', (e) => { e.stopPropagation(); mergeFolderInput.click(); });
+$('#mergeAddFiles').addEventListener('click', () => mergeFileInput.click());
+$('#mergeAddFolder').addEventListener('click', () => mergeFolderInput.click());
+mergeFileInput.addEventListener('change', (e) => { addMergeFromInput(e.target.files); mergeFileInput.value = ''; });
+mergeFolderInput.addEventListener('change', (e) => { addMergeFromInput(e.target.files); mergeFolderInput.value = ''; });
+mergeDrop.addEventListener('click', () => mergeFileInput.click());
+mergeDrop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') mergeFileInput.click(); });
+['dragenter', 'dragover'].forEach((t) => mergeDrop.addEventListener(t, (e) => { e.preventDefault(); mergeDrop.classList.add('dragging'); }));
+['dragleave', 'drop'].forEach((t) => mergeDrop.addEventListener(t, (e) => { e.preventDefault(); mergeDrop.classList.remove('dragging'); }));
+mergeDrop.addEventListener('drop', (e) => addMergeFromDrop(e.dataTransfer));
+$('#mergeSort').addEventListener('click', () => { mergeItems.sort(pathSort); renderMerge(); mergeStatus.textContent = 'Sorted by path.'; });
+$('#mergeReverse').addEventListener('click', () => { mergeItems.reverse(); renderMerge(); mergeStatus.textContent = 'Order reversed.'; });
+$('#mergeClear').addEventListener('click', () => { mergeItems = []; renderMerge(); mergeStatus.textContent = 'All PDFs cleared.'; });
+
+// merge
+mergeButton.addEventListener('click', async () => {
+  if (!mergeItems.length || !window.PDFLib) { mergeStatus.textContent = 'PDF library could not load. Check your internet connection and try again.'; return; }
+  mergeButton.disabled = true;
+  const { PDFDocument } = window.PDFLib;
+  const failed = [];
+  let pageTotal = 0;
+  try {
+    const out = await PDFDocument.create();
+    for (let i = 0; i < mergeItems.length; i++) {
+      mergeStatus.textContent = `Merging ${i + 1} / ${mergeItems.length}…`;
+      try {
+        const src = await PDFDocument.load(await mergeItems[i].file.arrayBuffer(), { ignoreEncryption: true });
+        const copied = await out.copyPages(src, src.getPageIndices());
+        copied.forEach((p) => out.addPage(p));
+        pageTotal += copied.length;
+      } catch (err) {
+        console.warn('Skipped', mergeItems[i].path, err);
+        failed.push(mergeItems[i].path);
+      }
+      if (i % 5 === 0) await new Promise((r) => setTimeout(r, 0)); // let the UI repaint
+    }
+    mergeStatus.textContent = 'Saving…';
+    const bytes = await out.save({ useObjectStreams: true });
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    const link = document.createElement('a');
+    link.href = url; link.download = 'merged.pdf';
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    mergeStatus.textContent = `Done — ${mergeItems.length - failed.length} PDFs, ${pageTotal} pages merged (${formatBytes(bytes.byteLength)})` + (failed.length ? `. Skipped ${failed.length} unreadable: ${failed.slice(0, 3).join(', ')}${failed.length > 3 ? '…' : ''}` : '.');
+  } catch (error) {
+    console.error(error);
+    mergeStatus.textContent = 'Something went wrong while merging. Try fewer files at once.';
+  } finally {
+    mergeButton.disabled = mergeItems.length === 0;
+  }
+});

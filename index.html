@@ -20,9 +20,9 @@
       </header>
 
       <section class="hero">
-        <p class="kicker">two tools, zero uploads — everything runs in this tab</p>
+        <p class="kicker">three tools, zero uploads — everything runs in this tab</p>
         <h1>Why show your PDF to the world<br />when you can do it <span class="accent-a">locally</span>?</h1>
-        <p class="intro">Build one from a stack of images, or flip the page order of one you've already got. Nothing leaves your browser.</p>
+        <p class="intro">Build one from a stack of images, flip the page order of one you've already got, or merge a whole pile of them. Nothing leaves your browser.</p>
       </section>
 
       <section class="tools-grid">
@@ -97,6 +97,42 @@
           <div class="panel-note">
             <p>Turning "compress" on re-encodes any JPEG images inside the PDF at a lower quality to shrink the file. Layout and text are untouched.</p>
           </div>
+        </article>
+
+        <article class="tool-panel tool-panel--c tool-panel--wide" aria-label="Merge PDFs">
+          <div class="panel-head">
+            <span class="panel-mark">pdf + pdf</span>
+            <h2>Merge PDFs</h2>
+            <p>Drop PDFs or whole folders, any amount. Natural order: 1, 2, 3 ... 10, 11.</p>
+          </div>
+
+          <div id="mergeDrop" class="drop-zone drop-zone--c" tabindex="0" role="button" aria-label="Upload PDFs or folders">
+            <input id="mergeFileInput" type="file" accept="application/pdf" multiple hidden />
+            <input id="mergeFolderInput" type="file" webkitdirectory multiple hidden />
+            <div class="upload-icon upload-icon--c">+</div>
+            <h3>Drop PDFs or folders here</h3>
+            <p><button id="mergeBrowseFiles" type="button">choose PDFs</button> or <button id="mergeBrowseFolder" type="button">choose a folder</button></p>
+            <small>no file limit · subfolders are included</small>
+          </div>
+
+          <div id="mergeArea" class="pages-area" hidden>
+            <div class="toolbar">
+              <div><strong id="mergeCount">0 PDFs</strong><span>drag rows to set the order</span></div>
+              <div class="toolbar-actions">
+                <button id="mergeAddFiles" class="text-button text-button--c" type="button">add PDFs</button>
+                <button id="mergeAddFolder" class="text-button text-button--c" type="button">add folder</button>
+                <button id="mergeSort" class="text-button text-button--c" type="button">sort</button>
+                <button id="mergeReverse" class="text-button text-button--c" type="button">reverse</button>
+                <button id="mergeClear" class="text-button danger" type="button">clear all</button>
+              </div>
+            </div>
+            <ol id="mergeList" class="merge-list" aria-label="PDFs to merge"></ol>
+          </div>
+
+          <button id="mergeButton" class="download download--c" type="button" disabled>
+            <span>Merge &amp; Download</span><span class="arrow">→</span>
+          </button>
+          <p id="mergeStatus" class="status" aria-live="polite"></p>
         </article>
       </section>
     </main>
