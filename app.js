@@ -326,10 +326,10 @@ $('#mergeSort').addEventListener('click', () => { mergeItems.sort(pathSort); ren
 $('#mergeReverse').addEventListener('click', () => { mergeItems.reverse(); renderMerge(); mergeStatus.textContent = 'Order reversed.'; });
 $('#mergeClear').addEventListener('click', () => { mergeItems = []; renderMerge(); mergeStatus.textContent = 'All PDFs cleared.'; });
 
-// cover page
-async function addCoverPage(doc, title) {
-  const { StandardFonts, rgb } = window.PDFLib;
-  const font = await doc.embedFont(StandardFonts.HelveticaBold);
+// title pages
+async function drawTitlePage(doc, font, rawTitle) {
+  const { rgb } = window.PDFLib;
+  const title = rawTitle.replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '?'); // built-in font is Latin only
   const W = 595.28, H = 841.89, maxW = W - 120;
   const page = doc.addPage([W, H]);
   const wrap = (s) => {
@@ -356,18 +356,21 @@ async function addCoverPage(doc, title) {
 mergeButton.addEventListener('click', async () => {
   if (!mergeItems.length || !window.PDFLib) { mergeStatus.textContent = 'PDF library could not load. Check your internet connection and try again.'; return; }
   mergeButton.disabled = true;
-  const { PDFDocument } = window.PDFLib;
+  const { PDFDocument, StandardFonts } = window.PDFLib;
   const failed = [];
   let pageTotal = 0;
   try {
     const out = await PDFDocument.create();
+    const font = await out.embedFont(StandardFonts.HelveticaBold);
     const coverTitle = $('#mergeTitle').value.trim();
-    if (coverTitle) { await addCoverPage(out, coverTitle); pageTotal++; }
+    const eachTitle = $('#mergeEachTitle').checked;
+    if (coverTitle) { await drawTitlePage(out, font, coverTitle); pageTotal++; }
     for (let i = 0; i < mergeItems.length; i++) {
       mergeStatus.textContent = `Merging ${i + 1} / ${mergeItems.length}…`;
       try {
         const src = await PDFDocument.load(await mergeItems[i].file.arrayBuffer(), { ignoreEncryption: true });
         const copied = await out.copyPages(src, src.getPageIndices());
+        if (eachTitle) { await drawTitlePage(out, font, mergeItems[i].file.name.replace(/\.pdf$/i, '')); pageTotal++; }
         copied.forEach((p) => out.addPage(p));
         pageTotal += copied.length;
       } catch (err) {
