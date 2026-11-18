@@ -210,6 +210,7 @@ reversePdfFileButton.addEventListener('click', async () => {
     reversePdfFileButton.disabled = false;
   }
 });
+
 // ---------- Merge PDFs ----------
 const mergeDrop = $('#mergeDrop');
 const mergeFileInput = $('#mergeFileInput');
@@ -325,6 +326,32 @@ $('#mergeSort').addEventListener('click', () => { mergeItems.sort(pathSort); ren
 $('#mergeReverse').addEventListener('click', () => { mergeItems.reverse(); renderMerge(); mergeStatus.textContent = 'Order reversed.'; });
 $('#mergeClear').addEventListener('click', () => { mergeItems = []; renderMerge(); mergeStatus.textContent = 'All PDFs cleared.'; });
 
+// cover page
+async function addCoverPage(doc, title) {
+  const { StandardFonts, rgb } = window.PDFLib;
+  const font = await doc.embedFont(StandardFonts.HelveticaBold);
+  const W = 595.28, H = 841.89, maxW = W - 120;
+  const page = doc.addPage([W, H]);
+  const wrap = (s) => {
+    const lines = []; let line = '';
+    for (const word of title.split(/\s+/)) {
+      const t = line ? line + ' ' + word : word;
+      if (!line || font.widthOfTextAtSize(t, s) <= maxW) line = t;
+      else { lines.push(line); line = word; }
+    }
+    lines.push(line);
+    return lines;
+  };
+  let size = 56, lines = wrap(size);
+  while (lines.some((l) => font.widthOfTextAtSize(l, size) > maxW) && size > 16) { size -= 2; lines = wrap(size); }
+  const lh = size * 1.25;
+  let y = H / 2 + (lines.length * lh) / 2 - size;
+  for (const l of lines) {
+    page.drawText(l, { x: (W - font.widthOfTextAtSize(l, size)) / 2, y, size, font, color: rgb(0, 0, 0) });
+    y -= lh;
+  }
+}
+
 // merge
 mergeButton.addEventListener('click', async () => {
   if (!mergeItems.length || !window.PDFLib) { mergeStatus.textContent = 'PDF library could not load. Check your internet connection and try again.'; return; }
@@ -334,6 +361,8 @@ mergeButton.addEventListener('click', async () => {
   let pageTotal = 0;
   try {
     const out = await PDFDocument.create();
+    const coverTitle = $('#mergeTitle').value.trim();
+    if (coverTitle) { await addCoverPage(out, coverTitle); pageTotal++; }
     for (let i = 0; i < mergeItems.length; i++) {
       mergeStatus.textContent = `Merging ${i + 1} / ${mergeItems.length}…`;
       try {

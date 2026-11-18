@@ -206,3 +206,9 @@ footer a:hover { text-decoration: underline; }
 .merge-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
 .merge-size { color: #626c7a; font-size: 11px; font-family: "JetBrains Mono", monospace; }
 .merge-remove { border: 0; background: none; color: var(--danger); font-size: 17px; cursor: pointer; padding: 0 4px; }
+.title-option { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); }
+.title-option input {
+  background: var(--surface-raised); border: 1px solid var(--border); border-radius: 4px;
+  color: var(--text); font: 600 13px "JetBrains Mono", monospace; padding: 9px 10px; outline: none;
+}
+.title-option input:focus { border-color: var(--accent-c); }
