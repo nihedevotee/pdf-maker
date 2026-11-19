@@ -20,9 +20,9 @@
       </header>
 
       <section class="hero">
-        <p class="kicker">three tools, zero uploads — everything runs in this tab</p>
+        <p class="kicker">four tools, zero uploads — everything runs in this tab</p>
         <h1>Why show your PDF to the world<br />when you can do it <span class="accent-a">locally</span>?</h1>
-        <p class="intro">Build one from a stack of images, flip the page order of one you've already got, or merge a whole pile of them. Nothing leaves your browser.</p>
+        <p class="intro">Build one from a stack of images, flip the page order of one you've already got, merge a whole pile of them, or turn Word docs into PDFs. Nothing leaves your browser.</p>
       </section>
 
       <section class="tools-grid">
@@ -140,13 +140,59 @@
           </button>
           <p id="mergeStatus" class="status" aria-live="polite"></p>
         </article>
+
+        <article class="tool-panel tool-panel--d tool-panel--wide" aria-label="Docs to PDF">
+          <div class="panel-head">
+            <span class="panel-mark">docx → pdf</span>
+            <h2>Docs to PDF</h2>
+            <p>Drop .docx files or folders. Several docs become one merged PDF, a single doc is just converted.</p>
+          </div>
+
+          <div id="docDrop" class="drop-zone drop-zone--d" tabindex="0" role="button" aria-label="Upload Word documents or folders">
+            <input id="docFileInput" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple hidden />
+            <input id="docFolderInput" type="file" webkitdirectory multiple hidden />
+            <div class="upload-icon upload-icon--d">W</div>
+            <h3>Drop Word docs or folders here</h3>
+            <p><button id="docBrowseFiles" type="button">choose docs</button> or <button id="docBrowseFolder" type="button">choose a folder</button></p>
+            <small>.docx only · no file limit · subfolders are included</small>
+          </div>
+
+          <div id="docArea" class="pages-area" hidden>
+            <div class="toolbar">
+              <div><strong id="docCount">0 docs</strong><span>drag rows to set the order</span></div>
+              <div class="toolbar-actions">
+                <button id="docAddFiles" class="text-button text-button--d" type="button">add docs</button>
+                <button id="docAddFolder" class="text-button text-button--d" type="button">add folder</button>
+                <button id="docSort" class="text-button text-button--d" type="button">sort</button>
+                <button id="docReverse" class="text-button text-button--d" type="button">reverse</button>
+                <button id="docClear" class="text-button danger" type="button">clear all</button>
+              </div>
+            </div>
+            <ol id="docList" class="merge-list" aria-label="Docs to convert"></ol>
+          </div>
+
+          <label class="checkbox-option"><input id="docEachTitle" type="checkbox" checked /> add a title page before each doc (uses the file name, only when merging)</label>
+
+          <label class="title-option title-option--d">cover page title (optional, only when merging)
+            <input id="docTitle" type="text" placeholder="e.g. Physics Notes" />
+          </label>
+
+          <button id="docButton" class="download download--d" type="button" disabled>
+            <span id="docButtonLabel">Convert &amp; Download</span><span class="arrow">→</span>
+          </button>
+          <p id="docStatus" class="status" aria-live="polite"></p>
+        </article>
       </section>
     </main>
+    <div id="docRender" aria-hidden="true"></div>
     <footer>
       <p>Made for orderly pages. Nothing is uploaded to a server — <a href="https://github.com/nihedevotee" target="_blank" rel="noopener">check the code, and follow along on GitHub</a> if you're into that kind of thing.</p>
     </footer>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx-preview/0.3.2/docx-preview.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

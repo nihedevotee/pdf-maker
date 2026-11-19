@@ -212,3 +212,12 @@ footer a:hover { text-decoration: underline; }
   color: var(--text); font: 600 13px "JetBrains Mono", monospace; padding: 9px 10px; outline: none;
 }
 .title-option input:focus { border-color: var(--accent-c); }
+:root { --accent-d: #ff8fb1; --accent-d-dim: #4a2433; }
+.tool-panel--d { border-top: 2px solid var(--accent-d); }
+.tool-panel--d .panel-mark { color: var(--accent-d); background: var(--accent-d-dim); }
+.drop-zone--d:hover, .drop-zone--d:focus, .drop-zone--d.dragging { border-color: var(--accent-d); background: #1f1218; }
+.drop-zone--d button, .text-button--d { color: var(--accent-d); }
+.upload-icon--d { background: var(--accent-d-dim); color: var(--accent-d); }
+.download--d { background: var(--accent-d); }
+.title-option--d input:focus { border-color: var(--accent-d); }
+#docRender { position: absolute; left: -10000px; top: 0; background: #fff; }

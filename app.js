@@ -394,3 +394,173 @@ mergeButton.addEventListener('click', async () => {
     mergeButton.disabled = mergeItems.length === 0;
   }
 });
+
+// ---------- Docs to PDF ----------
+const docDrop = $('#docDrop');
+const docFileInput = $('#docFileInput');
+const docFolderInput = $('#docFolderInput');
+const docList = $('#docList');
+const docButton = $('#docButton');
+const docStatus = $('#docStatus');
+let docItems = [];
+let docDragId = null;
+
+const isDocx = (file) => /\.docx$/i.test(file.name) && !file.name.startsWith('~$'); // skip Word temp files
+
+function addDocEntries(entries) {
+  const docs = entries.filter((e) => isDocx(e.file));
+  if (!docs.length) { docStatus.textContent = 'No .docx files found. Old .doc files need to be re-saved as .docx first.'; return; }
+  for (const e of docs) docItems.push({ id: crypto.randomUUID(), file: e.file, path: e.path });
+  docItems.sort(pathSort);
+  renderDocs();
+  docStatus.textContent = `${docs.length} doc${docs.length === 1 ? '' : 's'} added and sorted.`;
+}
+
+function addDocFromInput(files) {
+  addDocEntries([...files].map((file) => ({ file, path: file.webkitRelativePath || file.name })));
+}
+
+async function addDocFromDrop(dataTransfer) {
+  const entries = [...dataTransfer.items].map((i) => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  if (!entries.length) { addDocFromInput(dataTransfer.files); return; }
+  docStatus.textContent = 'Reading folders…';
+  const out = [];
+  for (const entry of entries) await readEntry(entry, out);
+  addDocEntries(out);
+}
+
+function renderDocs() {
+  docList.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  docItems.forEach((item, i) => {
+    const li = document.createElement('li');
+    li.className = 'merge-row'; li.draggable = true; li.dataset.id = item.id;
+    li.innerHTML = `<span class="merge-num">${i + 1}</span><span class="merge-path"></span><span class="merge-size">${formatBytes(item.file.size)}</span><button class="merge-remove" type="button" aria-label="Remove">×</button>`;
+    li.querySelector('.merge-path').textContent = item.path;
+    li.querySelector('.merge-path').title = item.path;
+    frag.append(li);
+  });
+  docList.append(frag);
+  $('#docCount').textContent = `${docItems.length} doc${docItems.length === 1 ? '' : 's'}`;
+  $('#docArea').hidden = docItems.length === 0;
+  docDrop.hidden = docItems.length > 0;
+  docButton.disabled = docItems.length === 0;
+  $('#docButtonLabel').textContent = docItems.length > 1 ? 'Convert & Merge' : 'Convert & Download';
+}
+
+docList.addEventListener('dragstart', (e) => {
+  const row = e.target.closest('.merge-row'); if (!row) return;
+  docDragId = row.dataset.id; row.classList.add('drag-source');
+});
+docList.addEventListener('dragend', () => {
+  docDragId = null;
+  docList.querySelectorAll('.drag-source, .drag-over').forEach((r) => r.classList.remove('drag-source', 'drag-over'));
+});
+docList.addEventListener('dragover', (e) => {
+  const row = e.target.closest('.merge-row'); if (!row) return;
+  e.preventDefault();
+  docList.querySelectorAll('.drag-over').forEach((r) => r.classList.remove('drag-over'));
+  if (row.dataset.id !== docDragId) row.classList.add('drag-over');
+});
+docList.addEventListener('drop', (e) => {
+  const row = e.target.closest('.merge-row'); if (!row || !docDragId) return;
+  e.preventDefault();
+  const from = docItems.findIndex((p) => p.id === docDragId);
+  const to = docItems.findIndex((p) => p.id === row.dataset.id);
+  if (from < 0 || to < 0 || from === to) return;
+  docItems.splice(to, 0, docItems.splice(from, 1)[0]);
+  renderDocs();
+});
+docList.addEventListener('click', (e) => {
+  const btn = e.target.closest('.merge-remove'); if (!btn) return;
+  const id = btn.closest('.merge-row').dataset.id;
+  docItems = docItems.filter((p) => p.id !== id);
+  renderDocs();
+});
+
+$('#docBrowseFiles').addEventListener('click', (e) => { e.stopPropagation(); docFileInput.click(); });
+$('#docBrowseFolder').addEventListener('click', (e) => { e.stopPropagation(); docFolderInput.click(); });
+$('#docAddFiles').addEventListener('click', () => docFileInput.click());
+$('#docAddFolder').addEventListener('click', () => docFolderInput.click());
+docFileInput.addEventListener('change', (e) => { addDocFromInput(e.target.files); docFileInput.value = ''; });
+docFolderInput.addEventListener('change', (e) => { addDocFromInput(e.target.files); docFolderInput.value = ''; });
+docDrop.addEventListener('click', () => docFileInput.click());
+docDrop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') docFileInput.click(); });
+['dragenter', 'dragover'].forEach((t) => docDrop.addEventListener(t, (e) => { e.preventDefault(); docDrop.classList.add('dragging'); }));
+['dragleave', 'drop'].forEach((t) => docDrop.addEventListener(t, (e) => { e.preventDefault(); docDrop.classList.remove('dragging'); }));
+docDrop.addEventListener('drop', (e) => addDocFromDrop(e.dataTransfer));
+$('#docSort').addEventListener('click', () => { docItems.sort(pathSort); renderDocs(); docStatus.textContent = 'Sorted by path.'; });
+$('#docReverse').addEventListener('click', () => { docItems.reverse(); renderDocs(); docStatus.textContent = 'Order reversed.'; });
+$('#docClear').addEventListener('click', () => { docItems = []; renderDocs(); docStatus.textContent = 'All docs cleared.'; });
+
+// renders one .docx in the hidden host and returns one JPEG data URL per Word page
+async function renderDocxPages(file) {
+  const host = $('#docRender');
+  host.innerHTML = '';
+  try {
+    await window.docx.renderAsync(await file.arrayBuffer(), host, null, { inWrapper: false, breakPages: true });
+    await Promise.all([...host.querySelectorAll('img')].map((img) => img.complete ? null : new Promise((r) => { img.onload = img.onerror = r; })));
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const sections = [...host.querySelectorAll('section.docx')];
+    if (!sections.length) throw new Error('No pages rendered');
+    const result = [];
+    for (const sec of sections) {
+      const canvas = await window.html2canvas(sec, {
+        scale: 2, backgroundColor: '#ffffff', useCORS: true,
+        onclone: (d) => { const h = d.getElementById('docRender'); if (h) { h.style.left = '0'; h.style.top = '0'; } }
+      });
+      result.push({ url: canvas.toDataURL('image/jpeg', 0.85), w: sec.offsetWidth * 0.75, h: sec.offsetHeight * 0.75 });
+    }
+    return result;
+  } finally {
+    host.innerHTML = '';
+  }
+}
+
+docButton.addEventListener('click', async () => {
+  if (!docItems.length) return;
+  if (!window.docx || !window.html2canvas || !window.PDFLib) { docStatus.textContent = 'A library could not load. Check your internet connection and try again.'; return; }
+  docButton.disabled = true;
+  const { PDFDocument, StandardFonts } = window.PDFLib;
+  const single = docItems.length === 1;
+  const failed = [];
+  let pageTotal = 0;
+  try {
+    const out = await PDFDocument.create();
+    const font = await out.embedFont(StandardFonts.HelveticaBold);
+    const coverTitle = single ? '' : $('#docTitle').value.trim();
+    const eachTitle = !single && $('#docEachTitle').checked;
+    if (coverTitle) { await drawTitlePage(out, font, coverTitle); pageTotal++; }
+    for (let i = 0; i < docItems.length; i++) {
+      docStatus.textContent = single ? 'Converting…' : `Converting ${i + 1} / ${docItems.length}…`;
+      await new Promise((r) => setTimeout(r, 0)); // let the UI repaint
+      try {
+        const rendered = await renderDocxPages(docItems[i].file);
+        if (eachTitle) { await drawTitlePage(out, font, docItems[i].file.name.replace(/\.docx$/i, '')); pageTotal++; }
+        for (const p of rendered) {
+          const img = await out.embedJpg(p.url);
+          const page = out.addPage([p.w, p.h]);
+          page.drawImage(img, { x: 0, y: 0, width: p.w, height: p.h });
+          pageTotal++;
+        }
+      } catch (err) {
+        console.warn('Skipped', docItems[i].path, err);
+        failed.push(docItems[i].path);
+      }
+    }
+    if (!out.getPageCount()) { docStatus.textContent = 'Nothing could be converted. The file may be corrupted or password-protected.'; return; }
+    docStatus.textContent = 'Saving…';
+    const bytes = await out.save({ useObjectStreams: true });
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    const link = document.createElement('a');
+    link.href = url; link.download = single ? docItems[0].file.name.replace(/\.docx$/i, '') + '.pdf' : 'merged-docs.pdf';
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    docStatus.textContent = `Done — ${docItems.length - failed.length} doc${docItems.length - failed.length === 1 ? '' : 's'}, ${pageTotal} pages (${formatBytes(bytes.byteLength)})` + (failed.length ? `. Skipped ${failed.length} unreadable: ${failed.slice(0, 3).join(', ')}${failed.length > 3 ? '…' : ''}` : '.');
+  } catch (error) {
+    console.error(error);
+    docStatus.textContent = 'Something went wrong while converting. Try fewer docs at once.';
+  } finally {
+    docButton.disabled = docItems.length === 0;
+  }
+});
