@@ -519,7 +519,8 @@ async function renderDocxPages(file) {
 
 docButton.addEventListener('click', async () => {
   if (!docItems.length) return;
-  if (!window.docx || !window.html2canvas || !window.PDFLib) { docStatus.textContent = 'A library could not load. Check your internet connection and try again.'; return; }
+  const missing = [['docx-preview', window.docx], ['html2canvas', window.html2canvas], ['pdf-lib', window.PDFLib]].filter(([, v]) => !v).map(([n]) => n);
+  if (missing.length) { docStatus.textContent = `Could not load: ${missing.join(', ')}. Hard refresh (Ctrl+F5) and try again.`; return; }
   docButton.disabled = true;
   const { PDFDocument, StandardFonts } = window.PDFLib;
   const single = docItems.length === 1;
